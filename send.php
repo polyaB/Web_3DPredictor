@@ -47,11 +47,15 @@ $model_path=$_POST["model"];
 
 $f_pointer=fopen("trained_models_for_web_3DPredictor/models_description.txt","r");
 $cap=fgetcsv($f_pointer,0,"\t");
+$resolution=0;
+$rnaseq_model_pre="";
 while(!feof($f_pointer)){
 	$ar=fgetcsv($f_pointer,0,"\t");
-	if($ar[1]==$_POST["model"]) { 
+	if($ar[1]==$_POST["model"]) {
 		$forbidden=explode(",", $ar[4]);
 		$chr_number=substr($chr, 3);
+		$resolution=(int)$ar[3];
+		$rnaseq_model_pre=$ar[6];
 		if(in_array($chr_number, $forbidden)) {
 			echo "<div style=\"color: red; text-align: center;\">Bad chromosome number (used in training), please choose another model</div>";
 			exit();
@@ -127,7 +131,7 @@ if ($queue_check>5) {
 
 // EXEC PIPELINE
 
-$cmd = 'screen -dm ./pipeline.sh '.$uploaddir.' '.$genome_assembly.' '.$chr.' '.$interval_start.' '.$interval_end.' '.$model_path.' '.$email.' '.$UID;
+$cmd = 'screen -dm ./pipeline.sh '.$uploaddir.' '.$genome_assembly.' '.$chr.' '.$interval_start.' '.$interval_end.' '.$model_path.' '.$email.' '.$UID.' '.$resolution.' '.$rnaseq_model_pre;
 shell_exec($cmd);
 
 echo "<script type=\"text/javascript\">alert('Good. Looks like most things are correct. Please wait for email :)');</script>";

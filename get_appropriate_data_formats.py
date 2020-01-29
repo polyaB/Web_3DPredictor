@@ -34,4 +34,4 @@ def get_rna_format_for_3DPredictor(RNAseq_file, output_file, genome_assembly, RN
 	FinalData = quantileNormalize(FinalData, RNA_data_model)
 	FinalData[["Chromosome/scaffold name", "Gene start (bp)", "Gene end (bp)", "FPKM", "Gene name"]].to_csv(output_file, sep="\t",index=False)
 
-if __name__ == "__main__": get_rna_format_for_3DPredictor(sys.argv[1], sys.argv[2], sys.argv[3])
+if __name__ == "__main__": get_rna_format_for_3DPredictor(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

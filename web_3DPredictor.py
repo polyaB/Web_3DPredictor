@@ -31,6 +31,7 @@ def createParser():
     Default_parser.add_argument ('-e', '--end', required=True, dest="interval_end", help='End Position')
     Default_parser.add_argument ('-O', '--output', required=True, dest="out_file", help='Output File')
     Default_parser.add_argument ('-m', '--model', required=True, dest="model_path", help='Model Path')
+    Default_parser.add_argument ('-r', '--resolution', required=True, dest="resolution", help='Resolution')
     return parser
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%I:%M:%S', level=logging.DEBUG)
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     chr= namespace.chr
     interval_start = namespace.interval_start
     interval_end = namespace.interval_end
-    resolution = 5000
+    resolution = int(namespace.resolution)
     model_path = namespace.model_path
     out_file=namespace.out_file
 

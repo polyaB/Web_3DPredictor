@@ -1,5 +1,5 @@
-name	model_name	species	resolution	train_chrms	predictors
-Homo sapiens, K562, even chromosomes	human_K562_5KB_evenChrms_CtcfRnaDist	human	5000	2,4,6,8,10,12,14,16,18,20,22	CTCF, RNA, contact_dist
-Homo sapiens, K562, odd chromosomes	human_K562_5KB_oddChrms_CtcfRnaDist	human	5000	1,3,5,7,9,11,13,15,17,19,21,X	CTCF, RNA, contact_dist
-Mus musculus, NPC, even chromosomes	mouse_NPC_5KB_evenChrms_CtcfRnaDist	mouse	5000	2,4,6,8,10,12,14,16,18,X	CTCF, RNA, contact_dist
-Mus musculus, NPC, odd chromosomes	mouse_NPC_5KB_oddChrms_CtcfRnaDist	mouse	5000	1,3,5,7,9,11,13,15,17,19	CTCF, RNA, contact_dist
+name	model_name	species	resolution	train_chrms	predictors	model_predictor
+Homo sapiens, K562, even chromosomes	human_K562_5KB_evenChrms_CtcfRnaDist	human	5000	2,4,6,8,10,12,14,16,18,20,22	CTCF, RNA, contact_dist	K562_RNA_pre.txt
+Homo sapiens, K562, odd chromosomes	human_K562_5KB_oddChrms_CtcfRnaDist	human	5000	1,3,5,7,9,11,13,15,17,19,21,X	CTCF, RNA, contact_dist	K562_RNA_pre.txt
+Mus musculus, NPC, even chromosomes	mouse_NPC_5KB_evenChrms_CtcfRnaDist	mouse	5000	2,4,6,8,10,12,14,16,18,X	CTCF, RNA, contact_dist	NPC_RNA_pre.txt
+Mus musculus, NPC, odd chromosomes	mouse_NPC_5KB_oddChrms_CtcfRnaDist	mouse	5000	1,3,5,7,9,11,13,15,17,19	CTCF, RNA, contact_dist	NPC_RNA_pre.txt

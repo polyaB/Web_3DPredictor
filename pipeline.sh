@@ -24,6 +24,8 @@ INTERVAL_END=$5
 MODEL=$6
 EMAIL=$7
 PredUID=$8
+RESOLUTION=$9
+RNASEQ_MODEL_PRE=${10}
 
 RNA_SEQ_FILE=""$DATA_FOLDER"rna_seq.csv"
 RNA_SEQ_PRE=""$DATA_FOLDER"RNAseq_pre.txt"
@@ -51,15 +53,17 @@ HIC_FILE_GZIPPED=""$DATA_FOLDER"3DPredictor_result_"$(date +'%Y%m%d_%H%M%S' --da
 Logo > $LOG_FILE
 echo "COMMAND LINE DATA" >> $LOG_FILE
 echo >> $LOG_FILE
-echo "Data folder: "$1"" >> $LOG_FILE
-echo "Genome assembly: "$2"" >> $LOG_FILE
-echo "Chrom: "$3"" >> $LOG_FILE
-echo "Interval Start: "$4"" >> $LOG_FILE
-echo "Interval End: "$5"" >> $LOG_FILE
-echo "Model path: "$6"" >> $LOG_FILE
-echo "Email: "$7"" >> $LOG_FILE
+echo "Data folder: "$DATA_FOLDER"" >> $LOG_FILE
+echo "Genome assembly: "$GENOME"" >> $LOG_FILE
+echo "Chrom: "$CHROM"" >> $LOG_FILE
+echo "Interval Start: "$INTERVAL_START"" >> $LOG_FILE
+echo "Interval End: "$INTERVAL_END"" >> $LOG_FILE
+echo "Model: "$MODEL"" >> $LOG_FILE
+echo "Resolution: "$RESOLUTION"" >> $LOG_FILE
+echo "RNA-Seq Model File: "$RNASEQ_MODEL_PRE"" >> $LOG_FILE
+echo "Email: "$EMAIL"" >> $LOG_FILE
 echo >> $LOG_FILE
-echo "<h1>3DPredictor Report</h1><p><b>Genome assembly:</b> "$2"</p><p><b>Chrom:</b> "$3"</p><p><b>Interval Start:</b> "$4"</p><p><b>Interval End:</b> "$5"</p><p><b>Model:</b> "$6"</p><p><b>Started:</b> "$(date +'%Y-%m-%d %H:%M:%S' --date="@"$START_TIMESTAMP"")" [NSK]</p>" > $MAIL_TEXT
+echo "<h1>3DPredictor Report</h1><p><b>Genome assembly:</b> "$GENOME"</p><p><b>Chrom:</b> "$CHROM"</p><p><b>Interval Start:</b> "$INTERVAL_START"</p><p><b>Interval End:</b> "$INTERVAL_END"</p><p><b>Model:</b> "$MODEL"</p><p><b>Resolution:</b> "$RESOLUTION"</p><p><b>Started:</b> "$(date +'%Y-%m-%d %H:%M:%S' --date="@"$START_TIMESTAMP"")" [NSK]</p>" > $MAIL_TEXT
 
 # CTCF Orient
 
@@ -75,14 +79,14 @@ echo "Done." >> $LOG_FILE
 
 echo "# RNA-Seq File Preparation ..." >> $LOG_FILE
 conda activate base >> $LOG_FILE 2>> $LOG_FILE
-python3 get_appropriate_data_formats.py $RNA_SEQ_FILE $RNA_SEQ_PRE $GENOME >> $LOG_FILE 2>> $LOG_FILE
+python3 get_appropriate_data_formats.py $RNA_SEQ_FILE $RNA_SEQ_PRE $GENOME ./input/model_predictors/$RNASEQ_MODEL_PRE >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler get_appropriate_data_formats.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
 
 # Prediction
 
 echo "# Prediction ..." >> $LOG_FILE
-python3 web_3DPredictor.py Predictor -N $RNA_SEQ_PRE -C $CTCF_FILE -o $CTCF_ORIENT_PURE_FILE -g $GENOME -c $CHROM -s $INTERVAL_START -e $INTERVAL_END -O $OUT_FILE -m $MODEL_PATH >> $LOG_FILE 2>> $LOG_FILE
+python3 web_3DPredictor.py Predictor -N $RNA_SEQ_PRE -C $CTCF_FILE -o $CTCF_ORIENT_PURE_FILE -g $GENOME -c $CHROM -s $INTERVAL_START -e $INTERVAL_END -O $OUT_FILE -m $MODEL_PATH -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler web_3DPredictor.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
 
@@ -96,7 +100,7 @@ echo "Done." >> $LOG_FILE
 # HiC Map
 
 echo "# HiC Map ..." >> $LOG_FILE
-java -jar ./3Dpredictor/source/juicer_tools.jar pre $HIC_PRE $HIC_FILE $HIC_CHROMSIZES -n -r 5000 >> $LOG_FILE 2>> $LOG_FILE
+java -jar ./3Dpredictor/source/juicer_tools.jar pre $HIC_PRE $HIC_FILE $HIC_CHROMSIZES -n -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler juicer_tools.jar $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
 
