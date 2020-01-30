@@ -3,7 +3,7 @@ import pandas as pd
 import logging
 import sys
 import re
-from normalization import quantileNormalize
+from normalization import *
 
 def get_rna_format_for_3DPredictor(RNAseq_file, output_file, genome_assembly, RNAseq_model_file):
 	gene_id_field = 'gene_id'

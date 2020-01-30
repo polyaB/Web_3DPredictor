@@ -11,9 +11,11 @@ function FailHandler() {
 	echo "Error: "$l_MODULE_NAME" stopped with exit code 1" >> $l_LOG_FILE
 	echo "# Email ..." >> $l_LOG_FILE
 	echo "<p><p><b>Status:</b> Failed</p><hr><p>We are aware of your problem, and we will fix it as soon as possible.</p>" >> $l_MAIL_TEXT
+	echo ""$(TS)" python3 email_sender.py "$l_EMAIL" "$l_MAIL_TEXT" no" >> $l_LOG_FILE
 	python3 email_sender.py ""$l_EMAIL"" ""$l_MAIL_TEXT"" no >> $l_LOG_FILE 2>> $l_LOG_FILE
 	echo "Done." >> $l_LOG_FILE
 }
+function TS() { date +'[%H:%M:%S]' >&1; }
 
 # vars
 DATA_FOLDER=$1
@@ -32,7 +34,7 @@ RNA_SEQ_PRE=""$DATA_FOLDER"RNAseq_pre.txt"
 CTCF_FILE=""$DATA_FOLDER"ctcf.csv"
 CTCF_CUT_FILE=""$DATA_FOLDER"ctcf_cut.csv"
 CTCF_ORIENT_FILE=""$DATA_FOLDER"ctcf_orient.csv"
-CTCF_ORIENT_PURE_FILE=""$DATA_FOLDER"ctcf_orient_bez_vsyakoy_srani_kotoruyu_pihaet_v_stdout_gimmemotifs.csv"
+CTCF_ORIENT_PURE_FILE=""$DATA_FOLDER"ctcf_orient_pure.csv"
 CTCF_WEIGHTS="./input/CTCF_from_Jaspar2016.pwm"
 
 MODEL_PATH="./trained_models_for_web_3DPredictor/"$MODEL""
@@ -68,48 +70,55 @@ echo "<h1>3DPredictor Report</h1><p><b>Genome assembly:</b> "$GENOME"</p><p><b>C
 # CTCF Orient
 
 echo "# CTCF Orient ..." >> $LOG_FILE
+echo ""$(TS)" source ./_pyenv/bin/activate gimme" >> $LOG_FILE
 source ./_pyenv/bin/activate gimme >> $LOG_FILE 2>> $LOG_FILE
+echo ""$(TS)" cut -f 1-7 "$CTCF_FILE" > "$CTCF_CUT_FILE"" >> $LOG_FILE
 cut -f 1-7 $CTCF_FILE > $CTCF_CUT_FILE 2>> $LOG_FILE
+echo ""$(TS)" gimme scan "$CTCF_CUT_FILE" -g ./_pyenv/genomes/"$GENOME"/"$GENOME".fa -p "$CTCF_WEIGHTS" -n 10 -b > "$CTCF_ORIENT_FILE"" >> $LOG_FILE
 gimme scan $CTCF_CUT_FILE -g ./_pyenv/genomes/$GENOME/$GENOME.fa -p $CTCF_WEIGHTS -n 10 -b > $CTCF_ORIENT_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler gimme $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
+echo ""$(TS)" grep '^[^#].*$' "$CTCF_ORIENT_FILE" > "$CTCF_ORIENT_PURE_FILE"" >> $LOG_FILE
 grep '^[^#].*$' $CTCF_ORIENT_FILE > $CTCF_ORIENT_PURE_FILE 2>> $LOG_FILE
 echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # RNA-Seq File Preparation
 
 echo "# RNA-Seq File Preparation ..." >> $LOG_FILE
+echo ""$(TS)" conda activate base" >> $LOG_FILE
 conda activate base >> $LOG_FILE 2>> $LOG_FILE
+echo ""$(TS)" python3 get_appropriate_data_formats.py "$RNA_SEQ_FILE" "$RNA_SEQ_PRE" "$GENOME" ./input/model_predictors/"$RNASEQ_MODEL_PRE"" >> $LOG_FILE
 python3 get_appropriate_data_formats.py $RNA_SEQ_FILE $RNA_SEQ_PRE $GENOME ./input/model_predictors/$RNASEQ_MODEL_PRE >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler get_appropriate_data_formats.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # Prediction
 
 echo "# Prediction ..." >> $LOG_FILE
+echo ""$(TS)" python3 web_3DPredictor.py Predictor -N "$RNA_SEQ_PRE" -C "$CTCF_FILE" -o "$CTCF_ORIENT_PURE_FILE" -g "$GENOME" -c "$CHROM" -s "$INTERVAL_START" -e "$INTERVAL_END" -O "$OUT_FILE" -m "$MODEL_PATH" -r "$RESOLUTION"" >> $LOG_FILE
 python3 web_3DPredictor.py Predictor -N $RNA_SEQ_PRE -C $CTCF_FILE -o $CTCF_ORIENT_PURE_FILE -g $GENOME -c $CHROM -s $INTERVAL_START -e $INTERVAL_END -O $OUT_FILE -m $MODEL_PATH -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler web_3DPredictor.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # Pre-HiC
 
 echo "# Pre-HiC ..." >> $LOG_FILE
+echo ""$(TS)" python3 GetPreForHic.py "$OUT_FILE" "$HIC_CHROMSIZES" "$HIC_PRE"" >> $LOG_FILE
 python3 GetPreForHic.py $OUT_FILE $HIC_CHROMSIZES $HIC_PRE >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler GetPreForHic.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # HiC Map
 
 echo "# HiC Map ..." >> $LOG_FILE
+echo ""$(TS)" java -jar ./3Dpredictor/source/juicer_tools.jar pre "$HIC_PRE" "$HIC_FILE" "$HIC_CHROMSIZES" -n -r "$RESOLUTION"" >> $LOG_FILE
 java -jar ./3Dpredictor/source/juicer_tools.jar pre $HIC_PRE $HIC_FILE $HIC_CHROMSIZES -n -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler juicer_tools.jar $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
-
-# Gzipping
-
-echo "# Gzipping Results ..." >> $LOG_FILE
-gzip -c $HIC_FILE > $HIC_FILE_GZIPPED 2>> $LOG_FILE
-if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler gzip $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
-echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # Success Email
 
@@ -117,9 +126,13 @@ echo "# Email ..." >> $LOG_FILE
 END_TIMESTAMP=$(date +%s)
 DURATION=$(($END_TIMESTAMP - $START_TIMESTAMP))
 echo "<p><b>Duration:</b> "$(date -d@$DURATION -u '+%H h %M min %S sec')"</p><p><b>Status:</b> Success</p><hr><p>Attachment is a gzipped HiC map with predicted contacts.</p>" >> $MAIL_TEXT
-python3 email_sender.py ""$EMAIL"" ""$MAIL_TEXT"" ""$HIC_FILE_GZIPPED"" >> $LOG_FILE 2>> $LOG_FILE
+echo ""$(TS)" python3 email_sender.py "$EMAIL" "$MAIL_TEXT" "$HIC_FILE"" >> $LOG_FILE
+python3 email_sender.py ""$EMAIL"" ""$MAIL_TEXT"" ""$HIC_FILE"" >> $LOG_FILE 2>> $LOG_FILE
 echo "Done." >> $LOG_FILE
+echo >> $LOG_FILE
 
 # Folder Delete
 
-#rm -rf $DATA_FOLDER >> $LOG_FILE 2>> $LOG_FILE
+echo "# Delete Temp Files ..." >> $LOG_FILE
+echo ""$(TS)" rm -rf "$DATA_FOLDER"" >> $LOG_FILE
+rm -rf $DATA_FOLDER >> $LOG_FILE 2>> $LOG_FILE
