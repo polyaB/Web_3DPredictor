@@ -16,6 +16,9 @@ function FailHandler() {
 	echo "Done." >> $l_LOG_FILE
 }
 function TS() { date +'[%H:%M:%S]' >&1; }
+function ReadAnyway() { ( zcat $1 || bzcat $1 || cat $1 ) >&1 2> /dev/null; }
+function PureMD5() { local md5=( $(md5sum $1) ); echo ${md5[0]} >&1; }
+function PureBytes() { local bytes=( $(du $1) ); echo ${bytes[0]} >&1; }
 
 # vars
 DATA_FOLDER=$1
@@ -30,8 +33,10 @@ RESOLUTION=$9
 RNASEQ_MODEL_PRE=${10}
 
 RNA_SEQ_FILE=""$DATA_FOLDER"rna_seq.csv"
+RNA_SEQ_FILE_READABLE=""$DATA_FOLDER"rna_seq_readable.csv"
 RNA_SEQ_PRE=""$DATA_FOLDER"RNAseq_pre.txt"
 CTCF_FILE=""$DATA_FOLDER"ctcf.csv"
+CTCF_FILE_READABLE=""$DATA_FOLDER"ctcf_readable.csv"
 CTCF_CUT_FILE=""$DATA_FOLDER"ctcf_cut.csv"
 CTCF_ORIENT_FILE=""$DATA_FOLDER"ctcf_orient.csv"
 CTCF_ORIENT_PURE_FILE=""$DATA_FOLDER"ctcf_orient_pure.csv"
@@ -67,13 +72,22 @@ echo "Email: "$EMAIL"" >> $LOG_FILE
 echo >> $LOG_FILE
 echo "<h1>3DPredictor Report</h1><p><b>Genome assembly:</b> "$GENOME"</p><p><b>Chrom:</b> "$CHROM"</p><p><b>Interval Start:</b> "$INTERVAL_START"</p><p><b>Interval End:</b> "$INTERVAL_END"</p><p><b>Model:</b> "$MODEL"</p><p><b>Resolution:</b> "$RESOLUTION"</p><p><b>Started:</b> "$(date +'%Y-%m-%d %H:%M:%S' --date="@"$START_TIMESTAMP"")" [NSK]</p>" > $MAIL_TEXT
 
+# Uploads
+
+echo "# Uploads Check ..." >> $LOG_FILE
+echo "CTCF Size: "$(PureBytes $CTCF_FILE)"K, MD5: "$(PureMD5 $CTCF_FILE)"" >> $LOG_FILE
+echo "RNA-Seq Size: "$(PureBytes $RNA_SEQ_FILE)"K, MD5: "$(PureMD5 $RNA_SEQ_FILE)"" >> $LOG_FILE
+echo >> $LOG_FILE
+
 # CTCF Orient
 
 echo "# CTCF Orient ..." >> $LOG_FILE
 echo ""$(TS)" source ./_pyenv/bin/activate gimme" >> $LOG_FILE
 source ./_pyenv/bin/activate gimme >> $LOG_FILE 2>> $LOG_FILE
-echo ""$(TS)" cut -f 1-7 "$CTCF_FILE" > "$CTCF_CUT_FILE"" >> $LOG_FILE
-cut -f 1-7 $CTCF_FILE > $CTCF_CUT_FILE 2>> $LOG_FILE
+echo ""$(TS)" ReadAnyway "$CTCF_FILE" > "$CTCF_FILE_READABLE"" >> $LOG_FILE
+ReadAnyway $CTCF_FILE > $CTCF_FILE_READABLE 2>> $LOG_FILE
+echo ""$(TS)" cut -f 1-7 "$CTCF_FILE_READABLE" > "$CTCF_CUT_FILE"" >> $LOG_FILE
+cut -f 1-7 $CTCF_FILE_READABLE > $CTCF_CUT_FILE 2>> $LOG_FILE
 echo ""$(TS)" gimme scan "$CTCF_CUT_FILE" -g ./_pyenv/genomes/"$GENOME"/"$GENOME".fa -p "$CTCF_WEIGHTS" -n 10 -b > "$CTCF_ORIENT_FILE"" >> $LOG_FILE
 gimme scan $CTCF_CUT_FILE -g ./_pyenv/genomes/$GENOME/$GENOME.fa -p $CTCF_WEIGHTS -n 10 -b > $CTCF_ORIENT_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler gimme $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
@@ -87,8 +101,10 @@ echo >> $LOG_FILE
 echo "# RNA-Seq File Preparation ..." >> $LOG_FILE
 echo ""$(TS)" conda activate base" >> $LOG_FILE
 conda activate base >> $LOG_FILE 2>> $LOG_FILE
-echo ""$(TS)" python3 get_appropriate_data_formats.py "$RNA_SEQ_FILE" "$RNA_SEQ_PRE" "$GENOME" ./input/model_predictors/"$RNASEQ_MODEL_PRE"" >> $LOG_FILE
-python3 get_appropriate_data_formats.py $RNA_SEQ_FILE $RNA_SEQ_PRE $GENOME ./input/model_predictors/$RNASEQ_MODEL_PRE >> $LOG_FILE 2>> $LOG_FILE
+echo ""$(TS)" ReadAnyway "$RNA_SEQ_FILE" > "$RNA_SEQ_FILE_READABLE"" >> $LOG_FILE
+ReadAnyway $RNA_SEQ_FILE > $RNA_SEQ_FILE_READABLE 2>> $LOG_FILE
+echo ""$(TS)" python3 get_appropriate_data_formats.py "$RNA_SEQ_FILE_READABLE" "$RNA_SEQ_PRE" "$GENOME" ./input/model_predictors/"$RNASEQ_MODEL_PRE"" >> $LOG_FILE
+python3 get_appropriate_data_formats.py $RNA_SEQ_FILE_READABLE $RNA_SEQ_PRE $GENOME ./input/model_predictors/$RNASEQ_MODEL_PRE >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler get_appropriate_data_formats.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
 echo >> $LOG_FILE
@@ -96,8 +112,8 @@ echo >> $LOG_FILE
 # Prediction
 
 echo "# Prediction ..." >> $LOG_FILE
-echo ""$(TS)" python3 web_3DPredictor.py Predictor -N "$RNA_SEQ_PRE" -C "$CTCF_FILE" -o "$CTCF_ORIENT_PURE_FILE" -g "$GENOME" -c "$CHROM" -s "$INTERVAL_START" -e "$INTERVAL_END" -O "$OUT_FILE" -m "$MODEL_PATH" -r "$RESOLUTION"" >> $LOG_FILE
-python3 web_3DPredictor.py Predictor -N $RNA_SEQ_PRE -C $CTCF_FILE -o $CTCF_ORIENT_PURE_FILE -g $GENOME -c $CHROM -s $INTERVAL_START -e $INTERVAL_END -O $OUT_FILE -m $MODEL_PATH -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
+echo ""$(TS)" python3 web_3DPredictor.py Predictor -N "$RNA_SEQ_PRE" -C "$CTCF_FILE_READABLE" -o "$CTCF_ORIENT_PURE_FILE" -g "$GENOME" -c "$CHROM" -s "$INTERVAL_START" -e "$INTERVAL_END" -O "$OUT_FILE" -m "$MODEL_PATH" -r "$RESOLUTION"" >> $LOG_FILE
+python3 web_3DPredictor.py Predictor -N $RNA_SEQ_PRE -C $CTCF_FILE_READABLE -o $CTCF_ORIENT_PURE_FILE -g $GENOME -c $CHROM -s $INTERVAL_START -e $INTERVAL_END -O $OUT_FILE -m $MODEL_PATH -r $RESOLUTION >> $LOG_FILE 2>> $LOG_FILE
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then { FailHandler web_3DPredictor.py $EMAIL $MAIL_TEXT $LOG_FILE; exit 1; } fi
 echo "Done." >> $LOG_FILE
 echo >> $LOG_FILE

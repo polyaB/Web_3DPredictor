@@ -30,7 +30,8 @@ ENSG00000002834.13	SHOX	chrX	+	624344	659411	0.000000	0.000000	0.000000
 </pre>
 <aside>
 <p><b>Note:</b> <tt>Gene name</tt> field in your RNA-seq file will be ignored.
-If you would like to use gene name identifiers, place them into <tt>gene_id</tt> column.</p>
+If you would like to use gene name identifiers, place them into <tt>gene_id</tt> column.
+ENSEMBL transcript quantifications are not allowed, gene quantifications only.</p>
 </aside>
 <h3>Genome</h3>
 <p>Genome assembly should be relevant to your CTCF ChIP-seq data.

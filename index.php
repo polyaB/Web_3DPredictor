@@ -47,7 +47,7 @@ if (item != 'about') { document.getElementById('about').classList.remove('pure-m
 </div>
 
 <!-- PREDICTOR BLOCK -->
-<form id="predictor" class="pure-form pure-form-aligned" enctype="multipart/form-data" action="send.php" method="post" target="result">
+<form id="predictor" class="pure-form pure-form-aligned" enctype="multipart/form-data" action="send.php" onsubmit="ChangeBack(window.frames['result'].document);" method="post" target="result">
 <fieldset style="padding: 2em;">
 
 <!-- RNA-Seq -->
@@ -115,6 +115,11 @@ while(!feof($f_pointer)){
 <div style="height: 2em;"></div>
 
 <!-- Email -->
+<script>
+function ChangeBack(_object) {
+_object.body.style.background = "#ffffff url('motylator.gif') no-repeat center top"
+}
+</script>
 <div class="pure-control-group">
 <input type="email" name="email" class="pure-input-rounded pure-input-1-3" maxlength="255" placeholder="Your email" pattern="^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2, 4}$" required>
 <input type="submit" class="pure-button pure-input-rounded pure-button-primary pure-input-1-6" value="Get Prediction!">

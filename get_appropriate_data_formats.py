@@ -25,7 +25,7 @@ def get_rna_format_for_3DPredictor(RNAseq_file, output_file, genome_assembly, RN
 	#		if chroms > 1: another_chrom += [(var, chroms)]
 	#if len(non_unique) != 0: logging.getLogger(__name__).warning("Non-unique names: " + ' '.join(non_unique))
 	#if len(another_chrom) != 0: logging.getLogger(__name__).warning("Non-unique chroms: " + ' '.join(another_chrom))
-	FinalData = pd.merge(left=RNAseq_data,right=dataset,how="inner", left_on="Gene_ID",right_on=merge_field, validate="1:1" if is_ensembl else None)
+	FinalData = pd.merge(left=RNAseq_data,right=dataset,how="inner", left_on="Gene_ID",right_on=merge_field, validate=("1:1" if is_ensembl else None))
 	FinalData.drop_duplicates(subset=["Gene_ID"], keep='first', inplace=True)
 	assert ((len(FinalData) / len(RNAseq_data)) > 0.5), "Merging efficiency is less than 50%"
 	if len(FinalData) != len(RNAseq_data): logging.getLogger(__name__).warning("Some data missing in Ensembl, "+str(len(RNAseq_data)-len(FinalData)) + " out of "+str(len(RNAseq_data)))
